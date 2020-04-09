@@ -9,6 +9,7 @@
   "author": "Rahul Jaiswal",
   "license": "ISC",
   "dependencies": {
-    "@hapi/hapi": "^19.1.1"
+    "@hapi/hapi": "^19.1.1",
+    "node-polyglot": "^2.4.0"
   }
 }
