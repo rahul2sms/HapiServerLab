@@ -1,7 +1,7 @@
 {
   "name": "hapiserverlab",
   "version": "1.0.0",
-  "description": "My First Hapi App: Rahul Rocks",
+  "description": "My First Hapi App. This is really super easy..",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,6 +10,9 @@
   "license": "ISC",
   "dependencies": {
     "@hapi/hapi": "^19.1.1",
-    "node-polyglot": "^2.4.0"
+    "bell": "^10.0.0",
+    "node-polyglot": "^2.4.0",
+    "redis": "^3.0.2",
+    "uuid": "^7.0.3"
   }
 }
