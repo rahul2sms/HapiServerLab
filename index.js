@@ -4,6 +4,7 @@ const Hapi = require('@hapi/hapi');
 const Bell = require('bell');
 const Redis = require('redis');
 const { v4: uuidv4 } = require('uuid');
+const enrollments = require('./endpoints/enrollments').enrollments;
 Bell.providers['cwpIdkProvider'] = require('./providers/cwpIdkProvider');
 
 const pwd = uuidv4();
@@ -42,16 +43,17 @@ const init = async() => {
             let data = null;
             if(request.session.userProfile)
             {
-                return h.redirect("/print");
+                return h.redirect("/profile");
             }
             else if(request.auth.isAuthenticated)
             {
+                request.session.cwpSessionId = uuidv4();
                 request.session.credentials = request.auth.credentials;
                 request.session.artifacts = request.auth.artifacts;
                 request.session.userProfile = request.auth.credentials.profile;
 
                 console.log('User authenticated successfully - ' + pwd);
-                return h.redirect("/print");
+                return h.redirect("/garage");
             }
 
             let next = request.auth.credentials.query && request.auth.credentials.query.next;
@@ -68,9 +70,33 @@ const init = async() => {
         handler: (request, h) => {
             if(request.session.userProfile)
             {
-                return JSON.stringify(request.session.userProfile);
+                return JSON.stringify({userProfile: request.session.userProfile, credentials: request.session.credentials, artifacts: request.session.artifacts});
             }
             
+            console.log("SessionId " + request.session.cwpSessionId);
+
+            return h.redirect("/login");
+        }
+    });
+
+    server.route({
+        method: 'GET',
+        path: '/garage',
+        handler: (request, h) => {
+            
+            if(request.session.userProfile)
+            {
+                let sub = request.session.userProfile.sub;
+                let idToken = request.session.artifacts.id_token;
+                let accessToken = request.session.artifacts.access_token;
+
+                let garageJson = enrollments.getStatus(sub, idToken, accessToken);
+
+                console.log(garageJson);
+
+                return garageJson;
+            }
+
             return h.redirect("/login");
         }
     });

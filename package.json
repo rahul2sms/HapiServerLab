@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@hapi/hapi": "^19.1.1",
+    "axios": "^0.19.2",
     "bell": "^10.0.0",
     "hapi-server-session": "^5.1.1",
     "node-polyglot": "^2.4.0",
