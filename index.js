@@ -2,7 +2,7 @@
 
 const Hapi = require('@hapi/hapi');
 const Bell = require('bell');
-const Redis = require('redis');
+const Cache = require('./providers/CwpCache');
 const { v4: uuidv4 } = require('uuid');
 const enrollments = require('./endpoints/enrollments').enrollments;
 Bell.providers['cwpIdkProvider'] = require('./providers/cwpIdkProvider');
@@ -33,6 +33,21 @@ const init = async() => {
         clientSecret : '6a8b62ffe9a90875605b346706a6460ff5bf488d8ccbf612f24903ad1a8b8117'
       });
 
+    Cache.connect();
+
+    server.route({
+        method: 'GET',
+        path: '/',
+        handler: (request, h) => {
+            if(request.session.cwpSessionId)
+            {
+                return h.redirect("/garage");
+            }
+
+            return h.redirect("/login");
+        }
+    });
+
     server.route({
         method: 'GET',
         path: '/login',
@@ -41,18 +56,30 @@ const init = async() => {
         },
         handler: (request, h) => {
             let data = null;
-            if(request.session.userProfile)
+            if(request.session.cwpSessionId)
             {
-                return h.redirect("/profile");
+                return h.redirect("/garage");
             }
             else if(request.auth.isAuthenticated)
             {
                 request.session.cwpSessionId = uuidv4();
-                request.session.credentials = request.auth.credentials;
-                request.session.artifacts = request.auth.artifacts;
-                request.session.userProfile = request.auth.credentials.profile;
 
-                console.log('User authenticated successfully - ' + pwd);
+                if(request.auth.credentials)
+                {
+                    Cache.store(request.session.cwpSessionId, 'credentials', JSON.stringify(request.auth.credentials));
+                }
+                
+                if(request.auth.artifacts)
+                {
+                    Cache.store(request.session.cwpSessionId, 'artifacts', JSON.stringify(request.auth.artifacts));
+                }
+                
+                if(request.auth.credentials.profile)
+                {
+                    Cache.store(request.session.cwpSessionId, 'profile', JSON.stringify(request.auth.credentials.profile));
+                }
+                
+                console.log(`User authenticated successfully - cwpSessionId: ${request.session.cwpSessionId}`);
                 return h.redirect("/garage");
             }
 
@@ -68,12 +95,10 @@ const init = async() => {
         method: 'GET',
         path: '/profile',
         handler: (request, h) => {
-            if(request.session.userProfile)
+            if(request.session.cwpSessionId)
             {
-                return JSON.stringify({userProfile: request.session.userProfile, credentials: request.session.credentials, artifacts: request.session.artifacts});
+                return Cache.read(request.session.cwpSessionId, 'profile');
             }
-            
-            console.log("SessionId " + request.session.cwpSessionId);
 
             return h.redirect("/login");
         }
@@ -82,37 +107,23 @@ const init = async() => {
     server.route({
         method: 'GET',
         path: '/garage',
-        handler: (request, h) => {
+        handler: async (request, h) => {
             
-            if(request.session.userProfile)
+            if(request.session.cwpSessionId)
             {
-                let sub = request.session.userProfile.sub;
-                let idToken = request.session.artifacts.id_token;
-                let accessToken = request.session.artifacts.access_token;
+                let profile = JSON.parse(await Cache.read(request.session.cwpSessionId, 'profile'));
+                let artifacts = JSON.parse(await Cache.read(request.session.cwpSessionId, 'artifacts'));
+
+                let sub = profile.sub;
+                let idToken = artifacts.id_token;
+                let accessToken = artifacts.access_token;
 
                 let garageJson = enrollments.getStatus(sub, idToken, accessToken);
-
-                console.log(garageJson);
 
                 return garageJson;
             }
 
             return h.redirect("/login");
-        }
-    });
-
-    server.route({
-        method: 'GET',
-        path: '/redis',
-        handler: (request, h) => {
-            var client = Redis.createClient({
-                port: 6379,
-                host: '127.0.0.1'
-            });
-
-            client.set("MyKey", "Created By Rahul jaiswal");
-
-            return "Values saved in Redis with key MyKey";
         }
     });
 
@@ -128,7 +139,7 @@ const init = async() => {
 
 
     await server.start();
-    console.log("Server is running on %s", server.info.uri);
+    console.log(`Server is running on ${server.info.uri}`);
 }
 
 process.on('unhandledRejection', (err) => {
