@@ -5,12 +5,13 @@ const Bell = require('bell');
 const Cache = require('./providers/CwpCache');
 const { v4: uuidv4 } = require('uuid');
 const enrollments = require('./endpoints/enrollments').enrollments;
+const PortalConfig = require('./providers/configProvider').PortalConfig;
 Bell.providers['cwpIdkProvider'] = require('./providers/cwpIdkProvider');
 
 const pwd = uuidv4();
 
 const init = async() => {
-    const server = Hapi.Server({host: "0.0.0.0", port: 8080});
+    const server = Hapi.Server({host: PortalConfig.CWP_HOST, port: PortalConfig.CWP_PORT});
 
     await server.register(Bell);
 
@@ -20,8 +21,8 @@ const init = async() => {
             cookie: {
                 isSecure: false
             },
-            expiresIn: 90000,
-            name: 'cwpid'
+            expiresIn: PortalConfig.SESSION_TIMEOUT,
+            name: PortalConfig.SESSION_COOKIE_NAME
         }
     });
 
@@ -29,24 +30,11 @@ const init = async() => {
         provider: 'cwpIdkProvider',
         password: pwd,
         isSecure: false,
-        clientId  : 'da5f3f66-225e-48f7-a789-72cdb18f8f98@apps_vw-dilab_com',
-        clientSecret : '6a8b62ffe9a90875605b346706a6460ff5bf488d8ccbf612f24903ad1a8b8117'
+        clientId  : PortalConfig.OIDC_CLIENT_ID,
+        clientSecret : PortalConfig.OIDC_CLIENT_SECRET
       });
 
     Cache.connect();
-
-    server.route({
-        method: 'GET',
-        path: '/',
-        handler: (request, h) => {
-            if(request.session.cwpSessionId)
-            {
-                return h.redirect("/garage");
-            }
-
-            return h.redirect("/login");
-        }
-    });
 
     server.route({
         method: 'GET',
@@ -62,7 +50,12 @@ const init = async() => {
             }
             else if(request.auth.isAuthenticated)
             {
-                request.session.cwpSessionId = uuidv4();
+                request.session.cwpSessionId = request.auth.credentials.profile.sub;
+
+                if(request.auth.credentials.profile)
+                {
+                    Cache.store(request.session.cwpSessionId, 'profile', JSON.stringify(request.auth.credentials.profile));
+                }
 
                 if(request.auth.credentials)
                 {
@@ -134,6 +127,19 @@ const init = async() => {
             delete request.session;
 
             return "session killed on logout..";
+        }
+    });
+
+    server.route({
+        method: 'GET',
+        path: '/',
+        handler: (request, h) => {
+            if(request.session.cwpSessionId)
+            {
+                return h.redirect("/garage");
+            }
+
+            return h.redirect("/login");
         }
     });
 

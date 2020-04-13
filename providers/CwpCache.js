@@ -32,7 +32,7 @@ class CwpCache
         });
     }
     
-    static store = (hashkey, fieldname, fieldvalue) => {
+    static store = (hashkey, fieldname, fieldvalue, ttl) => {
         return new Promise(function (resolve, reject) {
             if(typeof fieldvalue == 'undefined') {
                 return reject(`Cache store filed. Value is blank. ${hashkey}: ${fieldname}`);
@@ -42,23 +42,19 @@ class CwpCache
                     return reject(err);
                 }
                 console.log(`Cache saved successfully. ${hashkey}:${fieldname} - ${result}`);
-                return resolve(result);
-            });
-        });
-    }
-    
-    static storeObject = (hashkey, storedData={}) => {
-        return new Promise( ( resolve, reject ) => {
-            return CwpCache.client.hmset(hashkey, storedData, function( err, result ){
-                if (err) {
-                    return reject(err);
+                if(ttl && isNaN(ttl))
+                {
+                    CwpCache.client.expire(hashkey, ttl);
                 }
-                console.log(`Cache object saved successfully. ${hashkey} - ${result}`);
+                else
+                {
+                    CwpCache.client.expire(hashkey, 3600);
+                }
+                
                 return resolve(result);
             });
         });
     }
-    
 }
 
 module.exports = CwpCache;
