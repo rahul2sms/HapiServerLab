@@ -11,6 +11,7 @@
   "dependencies": {
     "@hapi/hapi": "^19.1.1",
     "bell": "^10.0.0",
+    "hapi-server-session": "^5.1.1",
     "node-polyglot": "^2.4.0",
     "redis": "^3.0.2",
     "uuid": "^7.0.3"

@@ -24,7 +24,7 @@
   dependencies:
     "@hapi/hoek" "9.x.x"
 
-"@hapi/b64@5.x.x":
+"@hapi/b64@5.x.x", "@hapi/b64@^5.0.0":
   version "5.0.0"
   resolved "https://registry.yarnpkg.com/@hapi/b64/-/b64-5.0.0.tgz#b8210cbd72f4774985e78569b77e97498d24277d"
   integrity sha512-ngu0tSEmrezoiIaNGG6rRvKOUkUuDdf4XTPnONHGYfSGRmDqPZX5oJL6HAdKTo1UQHECbdB4OzhWrfgVppjHUw==
@@ -361,6 +361,14 @@ function-bind@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/function-bind/-/function-bind-1.1.1.tgz#a56899d3ea3c9bab874bb9773b7c5ede92f4895d"
   integrity sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==
+
+hapi-server-session@^5.1.1:
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/hapi-server-session/-/hapi-server-session-5.1.1.tgz#118d060efb1e4fd9bf7fc869fb2c870380b67007"
+  integrity sha512-jV+eJM06JcxJnPJVRojqdA2h3U8GAWGMu45vOISM+JH1vpjrM10inT++nKgwGjEGYXbKmf31TcF32LAPQXInWA==
+  dependencies:
+    "@hapi/b64" "^5.0.0"
+    "@hapi/hoek" "^9.0.0"
 
 has-symbols@^1.0.0, has-symbols@^1.0.1:
   version "1.0.1"

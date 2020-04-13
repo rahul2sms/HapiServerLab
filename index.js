@@ -13,6 +13,17 @@ const init = async() => {
 
     await server.register(Bell);
 
+    await server.register({
+        plugin: require('hapi-server-session'),
+        options: {
+            cookie: {
+                isSecure: false
+            },
+            expiresIn: 90000,
+            name: 'cwpid'
+        }
+    });
+
     server.auth.strategy('cwpIdkProvider', 'bell', {
         provider: 'cwpIdkProvider',
         password: pwd,
@@ -23,34 +34,44 @@ const init = async() => {
 
     server.route({
         method: 'GET',
-        path: '/',
+        path: '/login',
         options: {
             auth: 'cwpIdkProvider'
         },
         handler: (request, h) => {
+            let data = null;
+            if(request.session.userProfile)
+            {
+                return h.redirect("/print");
+            }
+            else if(request.auth.isAuthenticated)
+            {
+                request.session.credentials = request.auth.credentials;
+                request.session.artifacts = request.auth.artifacts;
+                request.session.userProfile = request.auth.credentials.profile;
+
+                console.log('User authenticated successfully - ' + pwd);
+                return h.redirect("/print");
+            }
+
             let next = request.auth.credentials.query && request.auth.credentials.query.next;
+            
             if(next){
                 return h.redirect(next);
             }
+        }
+    });
 
-            let data = null;
-            if(request.auth.isAuthenticated)
+    server.route({
+        method: 'GET',
+        path: '/profile',
+        handler: (request, h) => {
+            if(request.session.userProfile)
             {
-                let credentials = request.auth.credentials;
-                let artifacts = request.auth.artifacts;
-                let userProfile = request.auth.credentials.profile;
-
-                data = JSON.stringify({
-                    credentials: credentials,
-                    artifacts: artifacts,
-                    userProfile: userProfile
-                });
-
-                console.log('isAuthorized!! - ' +  data);
+                return JSON.stringify(request.session.userProfile);
             }
-
-            console.log('No post-authorization route set, go to default. Pwd: ' + pwd);
-            return h.response("Hello World! <br/>Data: " + data);
+            
+            return h.redirect("/login");
         }
     });
 
@@ -68,6 +89,17 @@ const init = async() => {
             return "Values saved in Redis with key MyKey";
         }
     });
+
+    server.route({
+        method: 'GET',
+        path: '/logout',
+        handler: (request, h) => {
+            delete request.session;
+
+            return "session killed on logout..";
+        }
+    });
+
 
     await server.start();
     console.log("Server is running on %s", server.info.uri);
